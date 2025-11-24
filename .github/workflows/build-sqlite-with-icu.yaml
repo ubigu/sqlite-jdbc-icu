@@ -1,0 +1,40 @@
+name: "Build SQLite with ICU on x86_64"
+
+on:
+  workflow_dispatch:
+    inputs:
+      sqliteVersion:
+        description: 'SQLite version to build'
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      attestations: write
+      id-token: write
+
+    steps:
+
+      # Create a gzip file containing the built frontend
+      - name: 'Build production Inventory Image'
+        working-directory: container
+        run: |
+          export DOCKER_TAG="sqlite-icu-linux-x86_64:${{ github.event.inputs.sqliteVersion }}"
+          docker build . --tag ${DOCKER_TAG} -f sqlite.debian13.Containerfile --build-arg SQLITE_VERSION="${{ github.event.inputs.sqliteVersion }}"
+          id=$(docker create ${DOCKER_TAG})
+          docker cp $id:/work/sqlite-jdbc/target/sqlite-jdbc-${{ github.event.inputs.sqliteVersion }}.jar ./sqlite-jdbc-${{ github.event.inputs.sqliteVersion }}-linux-x86_64.jar
+          docker rm -v $id
+      - name: "Release jar"
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: sqlite-icu-${{github.event.inputs.sqliteVersion}}
+          name: SQLite with ICU ${{github.event.inputs.sqliteVersion}}
+          files: |
+            ./sqlite-jdbc-${{ github.event.inputs.sqliteVersion }}-linux-x86_64.jar
