@@ -21,7 +21,8 @@ jobs:
       id-token: write
 
     steps:
-
+      - name: 'Checkout project'
+        uses: actions/checkout@main
       # Create a gzip file containing the built frontend
       - name: 'Build production Inventory Image'
         working-directory: container
