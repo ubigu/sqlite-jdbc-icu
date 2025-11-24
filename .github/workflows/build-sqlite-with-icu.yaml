@@ -21,7 +21,9 @@ jobs:
       id-token: write
 
     env:
-      CONTAINER_TAG: sqlite-icu-linux-x86_64:${{ github.event.inputs.sqliteVersion }}
+      CONTAINER_TAG: sqlite-jdbc-icu-linux-x86_64:${{ github.event.inputs.sqliteVersion }}
+      TAG_NAME: sqlite-jdbc-icu-${{ github.event.inputs.sqliteVersion }}-x86_64
+      JAR_FILE: sqlite-jdbc-${{ github.event.inputs.sqliteVersion }}.jar
     steps:
       - name: 'Checkout project'
         uses: actions/checkout@main
@@ -33,14 +35,24 @@ jobs:
       - name: 'Extract jar from container'
         run: |
           id=$(docker create ${{ env.CONTAINER_TAG}})
-          docker cp $id:/work/sqlite-jdbc/target/sqlite-jdbc-${{ github.event.inputs.sqliteVersion }}.jar ./sqlite-jdbc-${{ github.event.inputs.sqliteVersion }}-linux-x86_64.jar
+          docker cp $id:/work/sqlite-jdbc/target/${{ env.JAR_FILE }} ./${{ env.JAR_FILE }}
           docker rm -v $id
           ls -la *.jar
+
+# Make sure a tag exists for release
+      - uses: oleksiyrudenko/gha-git-credentials@v2-latest
+        with:
+          token: '${{ secrets.GITHUB_TOKEN }}'
+      - name: "Make sure tag exists"
+        run: |
+          git tag ${{ env.TAG_NAME }}
+          git push origin ${{ env.TAG_NAME }}
+
       - name: "Release jar"
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: sqlite-icu-${{github.event.inputs.sqliteVersion}}
+          tag_name: ${{ env.TAG_NAME }}
           name: SQLite with ICU ${{github.event.inputs.sqliteVersion}}
           files: |
-            ./sqlite-jdbc-${{ github.event.inputs.sqliteVersion }}-linux-x86_64.jar
+            ./${{ env.JAR_FILE }}
