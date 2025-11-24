@@ -19,7 +19,8 @@ jobs:
       packages: write
       attestations: write
       id-token: write
-
+    env:
+      CONTAINER_TAG: sqlite-icu-linux-x86_64:${{ github.event.inputs.sqliteVersion }}
     steps:
       - name: 'Checkout project'
         uses: actions/checkout@main
@@ -27,11 +28,13 @@ jobs:
       - name: 'Build production Inventory Image'
         working-directory: container
         run: |
-          export DOCKER_TAG="sqlite-icu-linux-x86_64:${{ github.event.inputs.sqliteVersion }}"
-          docker build . --tag ${DOCKER_TAG} -f sqlite.debian13.Containerfile --build-arg SQLITE_VERSION="${{ github.event.inputs.sqliteVersion }}"
-          id=$(docker create ${DOCKER_TAG})
+          docker build . --tag ${{CONTAINER_TAG}} -f sqlite.debian13.Containerfile --build-arg SQLITE_VERSION="${{ github.event.inputs.sqliteVersion }}"
+      - name: 'Extract jar from container'
+        run: |
+          id=$(docker create ${{CONTAINER_TAG}})
           docker cp $id:/work/sqlite-jdbc/target/sqlite-jdbc-${{ github.event.inputs.sqliteVersion }}.jar ./sqlite-jdbc-${{ github.event.inputs.sqliteVersion }}-linux-x86_64.jar
           docker rm -v $id
+          ls -la *.jar
       - name: "Release jar"
         uses: softprops/action-gh-release@v2
         with:

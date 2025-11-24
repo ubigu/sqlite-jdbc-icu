@@ -20,7 +20,7 @@ ARG SQLITE_VERSION=3.51.0.0
 RUN git clone --depth 1 -b ${SQLITE_VERSION} https://github.com/xerial/sqlite-jdbc.git
 
 WORKDIR /work/sqlite-jdbc
-RUN mvn dependency:resolve
+RUN mvn --no-transfer-progress --batch-mode dependency:resolve
 
 # In newer gcc versions implicit function declarations are treated
 # as errors. The `-Wno-error=implicit-function-declaration` should be removed
@@ -33,4 +33,4 @@ RUN fossil set manifest urt;\
 # Git repo contains precompiled libraries. Remove them before building java package
 RUN rm -Rf src/main/resources/org/sqlite/native && ls -laR  src/main/resources/org/sqlite/
 
-RUN mvn package
+RUN mvn --no-transfer-progress --batch-mode package
