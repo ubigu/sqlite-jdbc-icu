@@ -28,10 +28,10 @@ jobs:
       - name: 'Build production Inventory Image'
         working-directory: container
         run: |
-          docker build . --tag ${{CONTAINER_TAG}} -f sqlite.debian13.Containerfile --build-arg SQLITE_VERSION="${{ github.event.inputs.sqliteVersion }}"
+          docker build . --tag ${{ env.CONTAINER_TAG }} -f sqlite.debian13.Containerfile --build-arg SQLITE_VERSION="${{ github.event.inputs.sqliteVersion }}"
       - name: 'Extract jar from container'
         run: |
-          id=$(docker create ${{CONTAINER_TAG}})
+          id=$(docker create ${{ env.CONTAINER_TAG}})
           docker cp $id:/work/sqlite-jdbc/target/sqlite-jdbc-${{ github.event.inputs.sqliteVersion }}.jar ./sqlite-jdbc-${{ github.event.inputs.sqliteVersion }}-linux-x86_64.jar
           docker rm -v $id
           ls -la *.jar
