@@ -1,6 +1,9 @@
 name: "Build SQLite with ICU on x86_64"
 
 on:
+  push:
+    tags:
+      - '*'
   workflow_dispatch:
     inputs:
       sqliteVersion:
@@ -12,7 +15,7 @@ permissions:
   packages: write
 
 jobs:
-  build-and-release:
+  build-container:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -20,10 +23,12 @@ jobs:
       attestations: write
       id-token: write
 
+
     env:
-      CONTAINER_TAG: sqlite-jdbc-icu-linux-x86_64:${{ github.event.inputs.sqliteVersion }}
-      TAG_NAME: sqlite-jdbc-icu-${{ github.event.inputs.sqliteVersion }}-x86_64
-      JAR_FILE: sqlite-jdbc-${{ github.event.inputs.sqliteVersion }}.jar
+      SQLITE_VERSION: ${{ github.event.inputs.sqliteVersion || github.ref_name }}
+      CONTAINER_TAG: sqlite-jdbc-icu-linux-x86_64:${{ env.SQLITE_VERSION }}
+      TAG_NAME: sqlite-jdbc-icu-${{  env.SQLITE_VERSION }}-x86_64
+      JAR_FILE: sqlite-jdbc-${{  env.SQLITE_VERSION }}.jar
     steps:
       - name: 'Checkout project'
         uses: actions/checkout@main
@@ -31,7 +36,7 @@ jobs:
       - name: 'Build production Inventory Image'
         working-directory: container
         run: |
-          docker build . --tag ${{ env.CONTAINER_TAG }} -f sqlite.debian13.Containerfile --build-arg SQLITE_VERSION="${{ github.event.inputs.sqliteVersion }}"
+          docker build . --tag ${{ env.CONTAINER_TAG }} -f sqlite.debian13.Containerfile --build-arg SQLITE_VERSION="${{ env.SQLITE_VERSION }}"
       - name: 'Extract jar from container'
         run: |
           id=$(docker create ${{ env.CONTAINER_TAG}})
@@ -39,7 +44,7 @@ jobs:
           docker rm -v $id
           ls -la *.jar
 
-# Make sure a tag exists for release
+      # Make sure a tag exists for release
       - uses: oleksiyrudenko/gha-git-credentials@v2-latest
         with:
           token: '${{ secrets.GITHUB_TOKEN }}'
@@ -52,7 +57,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: ${{ env.TAG_NAME }}
-          name: SQLite with ICU ${{github.event.inputs.sqliteVersion}}
+          name: SQLite-JDBC with ICU ${{ env.SQLITE_VERSION }}
           files: |
             ./${{ env.JAR_FILE }}
