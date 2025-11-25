@@ -50,8 +50,8 @@ jobs:
           token: '${{ secrets.GITHUB_TOKEN }}'
       - name: "Make sure tag exists"
         run: |
-          git tag ${{ env.TAG_NAME }}
-          git push origin ${{ env.TAG_NAME }}
+          git tag ${{ env.SQLITE_VERSION }}
+          git push origin ${{ env.SQLITE_VERSION }} || echo "Tag already exists. Do not fail"
 
       - name: "Release jar"
         uses: softprops/action-gh-release@v2
