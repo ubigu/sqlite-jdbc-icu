@@ -26,9 +26,9 @@ jobs:
 
     env:
       SQLITE_VERSION: ${{ github.event.inputs.sqliteVersion || github.ref_name }}
-      CONTAINER_TAG: sqlite-jdbc-icu-linux-x86_64:${{ env.SQLITE_VERSION }}
-      TAG_NAME: sqlite-jdbc-icu-${{  env.SQLITE_VERSION }}-x86_64
-      JAR_FILE: sqlite-jdbc-${{  env.SQLITE_VERSION }}.jar
+      CONTAINER_TAG: sqlite-jdbc-icu-linux-x86_64:${{ github.event.inputs.sqliteVersion || github.ref_name }}
+      TAG_NAME: sqlite-jdbc-icu-${{ github.event.inputs.sqliteVersion || github.ref_name }}-x86_64
+      JAR_FILE: sqlite-jdbc-${{ github.event.inputs.sqliteVersion || github.ref_name }}.jar
     steps:
       - name: 'Checkout project'
         uses: actions/checkout@main
