@@ -1,15 +1,15 @@
-FROM debian:13
+FROM docker.io/library/maven:3.9-eclipse-temurin-17-noble
 
 RUN  export DEBIAN_FRONTEND=noninteractive && apt-get update \
   && apt-get install --no-install-recommends --no-install-suggests -y \
   build-essential libicu-dev python3 git ca-certificates \
-  curl unzip zip tcl-dev tcl apt-transport-https gpg wget maven fossil pkg-config \
-  default-jdk
+  curl unzip zip tcl-dev tcl apt-transport-https gpg wget fossil pkg-config
+#  maven default-jdk
 
 WORKDIR /work
 
 # Java permission tests fail when run with root
-RUN useradd -m -u 1000 -s /bin/bash builder \
+RUN useradd -m -u 1100 -s /bin/bash builder \
   && chown builder:builder /work
 ADD maven/ /home/builder/.m2/
 RUN chown -R builder /home/builder/.m2
