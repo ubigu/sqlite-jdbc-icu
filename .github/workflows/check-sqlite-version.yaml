@@ -19,6 +19,9 @@ jobs:
     permissions:
       contents: read
       actions: write
+    outputs:
+      execute-update: ${{ steps.version_check.outputs.UPDATE_VERSION }}
+      sqlite-version: ${{ steps.version_check.outputs.SQLITE_VERSION }}
     steps:
       - name: "Get sqlite version"
         env:
@@ -39,7 +42,29 @@ jobs:
         run: |
           if gh api /repos/${{github.repository}}/tags --jq '.[].name' |grep -q -- '${{ env.SQLITE_VERSION }}'; then
              echo "Geotools version ${{env.SQLITE_VERSION}} was found from project tags. Doing nothing."
+             
           else
              echo "Triggering geotools build action for sqlite: ${{env.SQLITE_VERSION}}";
-             gh workflow run "Build SQLite with ICU" --field sqliteVersion=${{ env.SQLITE_VERSION }}
+             echo "UPDATE_VERSION=true" >> "$GITHUB_OUTPUT"
+             echo "SQLITE_VERSION=${{ env.SQLITE_VERSION }}" >> "$GITHUB_OUTPUT"
+
           fi
+
+  trigger-sqlite-build:
+    if: needs.check-sqlite-version.outputs.execute-update == 'true'
+    needs: check-sqlite-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      attestations: write
+      id-token: write
+    env:
+      SQLITE_VERSION: ${{ needs.check-geoserver-version.outputs.geoserver-version }}
+    steps:
+      - name: "Pull repo"
+        uses: actions/checkout@v4
+      - name: "trigger build"
+        run: gh workflow run "Build SQLite with ICU" --field sqliteVersion=${{ env.SQLITE_VERSION }}
+
+
