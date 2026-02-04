@@ -57,7 +57,7 @@ jobs:
       contents: read
       actions: write
     env:
-      SQLITE_VERSION: ${{ needs.check-geoserver-version.outputs.geoserver-version }}
+      SQLITE_VERSION: ${{ needs.check-sqlite-version.outputs.sqlite-version }}
     steps:
       - name: "Pull repo"
         uses: actions/checkout@v4
