@@ -18,7 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      actions: write
     outputs:
       execute-update: ${{ steps.version_check.outputs.UPDATE_VERSION }}
       sqlite-version: ${{ steps.version_check.outputs.SQLITE_VERSION }}
@@ -55,10 +54,8 @@ jobs:
     needs: check-sqlite-version
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      packages: write
-      attestations: write
-      id-token: write
+      contents: read
+      actions: write
     env:
       SQLITE_VERSION: ${{ needs.check-geoserver-version.outputs.geoserver-version }}
     steps:
