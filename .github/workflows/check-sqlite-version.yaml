@@ -1,0 +1,95 @@
+---
+name: "Check for new geoserver version"
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run at random time (03:49), every day
+    - cron: "49 3 * * 1"
+
+
+jobs:
+  check-sqlite-version:
+    runs-on: ubuntu-latest
+    outputs:
+      execute-update: ${{ steps.version_check.outputs.UPDATE_VERSION }}
+      geoserver-version: ${{ steps.version_check.outputs.GEOSERVER_VERSION }}
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: "Get sqlite version"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo GEOSERVER_VERSION="$(gh api /repos/xerial/sqlite-jdbc/releases/latest --jq '.tag_name')" >> "$GITHUB_ENV"
+
+      - name: "Verify tag exists in this repo"
+        id: version_check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api /repos/${{github.repository}}/tags --jq '.[].name' |grep -q -- '${{ env.RELEASE_TAG }}'; then
+           echo "Geotools version ${{env.GEOSERVER_VERSION}} was found from project tags. Doing nothing."
+          else
+           echo "Triggering geotools build action: ${{env.GEOSERVER_VERSION}}";
+           echo "UPDATE_VERSION=true" >> "$GITHUB_OUTPUT"
+           echo "GEOSERVER_VERSION=${{ env.GEOSERVER_VERSION }}" >> "$GITHUB_OUTPUT"
+          fi
+  update-geoserver-version:
+    if: needs.check-geoserver-version.outputs.execute-update == 'true'
+    needs: check-geoserver-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      attestations: write
+      id-token: write
+    env:
+      GEOSERVER_VERSION: ${{ needs.check-geoserver-version.outputs.geoserver-version }}
+      RELEASE_TAG: ${{ needs.check-geoserver-version.outputs.geoserver-version }}-ubigu1
+    steps:
+
+      - name: "Pull repo"
+        uses: actions/checkout@v4
+
+      - name: "Update geoserver version"
+        run: sed -i'' -E 's/ARG GEOSERVER_VERSION=".*"$/ARG GEOSERVER_VERSION="${{ env.GEOSERVER_VERSION }}"/' Dockerfile
+      - name: Commit new version
+        uses: EndBug/add-and-commit@v9
+        with:
+          default_author: github_actions
+          message: "Update geoserver version to ${{ env.GEOSERVER_VERSION }}"
+          add: 'Dockerfile'
+      - name: Create a Release
+        uses: elgohr/Github-Release-Action@v5
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          title: "Update geoserver version to ${{ env.GEOSERVER_VERSION }}"
+          tag: ${{ env.RELEASE_TAG }}
+
+      - name: 'Login to GitHub Container Registry'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: ${{ env.RELEASE_TAG }}
+
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          build-args:
+            GEOSERVER_VERSION=${{ env.GEOSERVER_VERSION }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
