@@ -1,4 +1,4 @@
-name: "Build SQLite with ICU on x86_64"
+name: "Build SQLite with ICU"
 
 on:
   push:
